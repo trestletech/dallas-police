@@ -1,5 +1,4 @@
 // This is a PhantomJS Script
-
 var fs = require('fs');
 
 var page = require('webpage').create();
@@ -12,8 +11,6 @@ page.onLoadFinished = function(status) {
   });
 };
 
-var first = true;
-var pageNum = 0;
 var evalNext = function(str, callback, suppressNext){
   var hasNext = true;
   if (!suppressNext){
@@ -21,16 +18,14 @@ var evalNext = function(str, callback, suppressNext){
   }
   
   if (hasNext){
-    console.log("Got a new page. Waiting 3 sec.");
+    console.log("Got a new page. Waiting 5 sec.");
     // There is another page and it's loading.
     setTimeout(function(){
-      pageNum++;
-      page.render("page-" + pageNum + ".png");
       str += page.evaluate(getPage);
       evalNext(str, function(cbStr){
         callback(cbStr);
       });
-    }, 3000);
+    }, 5000);
   } else{
     console.log("No new page. Exiting");
     // return immediately.
@@ -38,8 +33,9 @@ var evalNext = function(str, callback, suppressNext){
   }
 }
 
-
-
+/**
+ * Called when exiting. Writes the provided string and exits.
+ **/
 var exit = function(str){
   console.log("Exiting");
   var file = fs.open("out.txt", "w");
@@ -49,6 +45,10 @@ var exit = function(str){
   phantom.exit();    
 }
 
+/**
+ * Send the session to the next page. Will return true if there was another page,
+ * false if there was not.
+ **/
 var nextPage = function(){
   var btn = jQuery('tr.GridPager_Mac td a[title="Next Page"]');
   
@@ -60,6 +60,9 @@ var nextPage = function(){
   return false;
 }
 
+/**
+ * Gets the current page, expecting that it's already had time to load.
+ **/
 var getPage = function() {
   var str = '';
   jQuery('table#grdData_ctl01 tbody tr').each(function(ind, val){
