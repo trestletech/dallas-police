@@ -19,4 +19,6 @@ for i in out-*.csv; do
     aws s3 cp $i s3://dallas-police/
 done
 
+# Keep a pointer to the latest one both here and in S3.
 cp out-*.csv current.csv
+aws s3 cp current.csv s3://dallas-police/
