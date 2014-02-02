@@ -20,6 +20,10 @@ geolocate <- function(address, key=getOption("MAPQUEST_KEY")){
   toReturn$lat <- NA
   toReturn$long <- NA
   
+  if (is.null(key) || key == ""){
+    stop("You must provide a mapquest key.")
+  }
+  
   address <- unique(address)
   
   # These JSON libraries are proving useless, so we'll just serialize it ourselves.
@@ -69,6 +73,12 @@ addresses <- apply(data, 1, function(thisRow){
   
   address
 })
+
+if (length(unique(data$UpdateTime)) > 1){
+  # Data spans more than one update. Could have duplicates or missed data.
+  # Just omit.
+  stop("Data spans multiple updates.")
+}
 
 geo <- geolocate(addresses)
 data$Zip <- geo$zip
