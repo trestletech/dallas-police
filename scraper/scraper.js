@@ -18,14 +18,14 @@ var evalNext = function(str, callback, suppressNext){
   }
   
   if (hasNext){
-    console.log("Got a new page. Waiting 5 sec.");
+    console.log("Got a new page. Waiting 3 sec.");
     // There is another page and it's loading.
     setTimeout(function(){
       str += page.evaluate(getPage);
       evalNext(str, function(cbStr){
         callback(cbStr);
       });
-    }, 5000);
+    }, 3000);
   } else{
     console.log("No new page. Exiting");
     // return immediately.
@@ -64,11 +64,15 @@ var nextPage = function(){
  * Gets the current page, expecting that it's already had time to load.
  **/
 var getPage = function() {
+  var updated = jQuery("#UpdatePanel1").text();
+  updated = updated.trim().replace(/^Last Update Received: /, '');
+  
   var str = '';
   jQuery('table#grdData_ctl01 tbody tr').each(function(ind, val){
     jQuery('td', val).each(function(tdInd, tdVal){
-      str += jQuery(tdVal).text() + '\t';
+      str += jQuery(tdVal).text().trim() + '\t';
     });
+    str += updated;
     str += '\n';
   });
   return str;
