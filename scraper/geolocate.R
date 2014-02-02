@@ -12,18 +12,39 @@ if (length(args) < 1){
 scrapedFile <- args[1]
 
 library(httr)
+library(RJSONIO)
 #' @param key The key for the Mapquest API (NOT URL encoded).
 geolocate <- function(address, key=getOption("MAPQUEST_KEY")){
-  url <- paste0("http://www.mapquestapi.com/geocoding/v1/address?&key=",
-                URLencode(key), "&street=", URLencode(address),
-                "&city=Dallas&state=TX")
+  toReturn <- data.frame(address = address)
+  toReturn$zip <- NA
+  toReturn$lat <- NA
+  toReturn$long <- NA
+  
+  address <- unique(address)
+  
+  # These JSON libraries are proving useless, so we'll just serialize it ourselves.
+  json <- paste0('{locations:[',
+                 paste0(paste0('{street:"', address, '",city:"Dallas",state:"TX"}'),
+                 collapse=",")
+                 ,']}')
+  
+  url <- paste0("http://www.mapquestapi.com/geocoding/v1/batch?&key=",
+                URLencode(key), "&json=", URLencode(json))
+  #print(paste("Getting: ", url ))
   info <- content(GET(url))
   
-  if (length(info$results[[1]]$locations) < 1){
-    stop(paste0("Error looking up address: ", address))
+  for (i in 1:length(info$results)){
+    res <- info$results[[i]]
+    rowInd <- which(res$providedLocation$street == toReturn$address)
+    
+    if (length(res$locations) >= 1){
+      toReturn[rowInd,"zip"] <- res$locations[[1]]$postalCode
+      toReturn[rowInd,"lat"] <- res$locations[[1]]$latLng$lat
+      toReturn[rowInd,"long"] <- res$locations[[1]]$latLng$lng 
+    }
   }
   
-  info$results[[1]]$locations[[1]]
+  toReturn
 }
 
 
@@ -38,21 +59,20 @@ data$Lat <- NA
 data$Long <- NA
 data$Zip <- NA
 
-for (i in 1:nrow(data)){
-  thisRow <- data[i,]
+addresses <- apply(data, 1, function(thisRow){
   address <- NULL
-  if (is.na(thisRow$Block)){
-    address <- thisRow$Street
+  if (is.na(thisRow["Block"])){
+    address <- thisRow["Street"]
   } else{
-    address <- paste(thisRow$Block, thisRow$Street)
+    address <- paste(thisRow["Block"], thisRow["Street"])
   }
   
-  try({
-    geo <- geolocate(address)
-    data[i, "Zip"] <- geo$postalCode
-    data[i, "Lat"] <- geo$latLng$lat
-    data[i, "Long"] <- geo$latLng$lng
-  }, TRUE)
-}
+  address
+})
 
-write.csv(data, "out.csv")
+geo <- geolocate(addresses)
+data$Zip <- geo$zip
+data$Lat <- geo$lat
+data$Long <- geo$long
+
+write.csv(data, paste0("out-", as.integer(Sys.time()), ".csv"), row.names=FALSE)
