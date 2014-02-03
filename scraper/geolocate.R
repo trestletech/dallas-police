@@ -32,7 +32,7 @@ geolocate <- function(address, key=getOption("MAPQUEST_KEY")){
                  collapse=",")
                  ,']}')
   
-  url <- paste0("http://www.mapquestapi.com/geocoding/v1/batch?&key=",
+  url <- paste0("http://open.mapquestapi.com/geocoding/v1/batch?&key=",
                 URLencode(key), "&json=", URLencode(json))
   #print(paste("Getting: ", url ))
   info <- content(GET(url))
@@ -80,9 +80,11 @@ if (length(unique(data$UpdateTime)) > 1){
   stop("Data spans multiple updates.")
 }
 
-geo <- geolocate(addresses)
-data$Zip <- geo$zip
-data$Lat <- geo$lat
-data$Long <- geo$long
+try({
+  geo <- geolocate(addresses)
+  data$Zip <- geo$zip
+  data$Lat <- geo$lat
+  data$Long <- geo$long
+}, silent=TRUE)
 
 write.csv(data, paste0("out-", as.integer(Sys.time()), ".csv"), row.names=FALSE)
