@@ -92,14 +92,34 @@ if (length(unique(data$UpdateTime)) > 1){
   stop("Data spans multiple updates.")
 }
 
+# Provide whatever addresses we can from the cache
+try({
+  if (!file.exists("addressCache.Rds")){
+    return()
+  }
+  addressCache <- readRDS("addressCache.Rds")
+  
+  matchInd <- match(addresses, addressCache$addresses)
+  
+  message(sum(!is.na(matchInd)), "/", nrow(data),
+          " addresses filled from the cache.")
+  
+  data$Zip <- addressCache[matchInd, "Zip"]
+  data$Lat <- addressCache[matchInd, "Lat"]
+  data$Long <- addressCache[matchInd, "Long"]
+}, silent=TRUE)
+
 # Get whatever data we can from the open API
 try({
-  geoOpen <- geocode(addresses, open=TRUE)
-  message(sum(!is.na(geoOpen$lat)), "/", length(addresses),
+  naRows <- is.na(data$Lat)
+  geoOpen <- geocode(addresses[naRows], open=TRUE)
+  
+  message(sum(!is.na(geoOpen$lat)), "/", sum(naRows),
     " addresses filled via the open API.")
-  data$Zip <- geoOpen$zip
-  data$Lat <- geoOpen$lat
-  data$Long <- geoOpen$long
+  
+  data[naRows, "Zip"] <- geoOpen$zip
+  data[naRows, "Lat"] <- geoOpen$lat
+  data[naRows, "Long"] <- geoOpen$long
 }, silent=TRUE)
 
 # Try to get any missing data from the commercial API
@@ -114,5 +134,13 @@ try({
   data[naRows,"Lat"] <- geoComm$lat
   data[naRows,"Long"] <- geoComm$long
 }, silent=TRUE)
+
+# Cache the addresses on disk so that we don't have to look up the addresses
+# that we already looked up in the previous minute.
+addressCache <- data[,c("Block", "Street", "Lat", "Long", "Zip")]
+addressCache <- cbind(addresses, addressCache)
+addressCache <- unique(addressCache)
+
+saveRDS(addressCache, file="addressCache.Rds")
 
 write.csv(data, paste0("out-", as.integer(Sys.time()), ".csv"), row.names=FALSE)
