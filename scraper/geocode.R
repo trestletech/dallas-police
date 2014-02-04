@@ -1,6 +1,6 @@
 
 #' Expect args in the format of:
-#' Rscript geolocate.R <outputFile> <MAPQUEST_KEY>
+#' Rscript geocode.R <outputFile> <MAPQUEST_KEY>
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) >= 2){
@@ -13,8 +13,16 @@ scrapedFile <- args[1]
 
 library(httr)
 library(RJSONIO)
+#' @param address A character or character vector of addresses to look up. Only
+#' the unique addresses will be sent to the API.
 #' @param key The key for the Mapquest API (NOT URL encoded).
-geolocate <- function(address, key=getOption("MAPQUEST_KEY")){
+#' @param open If TRUE will use Mapquest's open (OpenStreetMaps) API, if FALSE,
+#' will use their commercial API (which has a more stringent quota, so we only
+#' want to use it sparingly).
+#' @return A data.frame with columns for the addresses (an in-order copy of the
+#' vector provided as input complete with any redundant addresses), the zip
+#' code, the latitude, and the longitude.
+geocode <- function(address, key=getOption("MAPQUEST_KEY"), open=TRUE){
   toReturn <- data.frame(address = address)
   toReturn$zip <- NA
   toReturn$lat <- NA
@@ -32,8 +40,10 @@ geolocate <- function(address, key=getOption("MAPQUEST_KEY")){
                  collapse=",")
                  ,']}')
   
-  url <- paste0("http://open.mapquestapi.com/geocoding/v1/batch?&key=",
-                URLencode(key), "&json=", URLencode(json))
+  prefix <- ifelse(open, "open", "www")
+  
+  url <- paste0("http://",prefix,".mapquestapi.com/geocoding/v1/batch?&key=",
+                key, "&json=", URLencode(json))
   #print(paste("Getting: ", url ))
   info <- content(GET(url))
   
@@ -71,6 +81,8 @@ addresses <- apply(data, 1, function(thisRow){
     address <- paste(thisRow["Block"], thisRow["Street"])
   }
   
+  address <- sub(" / ", " and ", address)
+  
   address
 })
 
@@ -80,11 +92,27 @@ if (length(unique(data$UpdateTime)) > 1){
   stop("Data spans multiple updates.")
 }
 
+# Get whatever data we can from the open API
 try({
-  geo <- geolocate(addresses)
-  data$Zip <- geo$zip
-  data$Lat <- geo$lat
-  data$Long <- geo$long
+  geoOpen <- geocode(addresses, open=TRUE)
+  message(sum(!is.na(geoOpen$lat)), "/", length(addresses),
+    " addresses filled via the open API.")
+  data$Zip <- geoOpen$zip
+  data$Lat <- geoOpen$lat
+  data$Long <- geoOpen$long
+}, silent=TRUE)
+
+# Try to get any missing data from the commercial API
+try({
+  naRows <- is.na(data$Lat)
+  geoComm <- geocode(addresses[naRows], open=FALSE)
+  
+  message(sum(!is.na(geoComm$lat)), "/", sum(naRows),
+    " addresses filled via the commercial API.")
+  
+  data[naRows,"Zip"] <- geoComm$zip
+  data[naRows,"Lat"] <- geoComm$lat
+  data[naRows,"Long"] <- geoComm$long
 }, silent=TRUE)
 
 write.csv(data, paste0("out-", as.integer(Sys.time()), ".csv"), row.names=FALSE)

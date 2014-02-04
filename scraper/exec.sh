@@ -12,7 +12,7 @@ then
 fi
 
 phantomjs scraper.js
-Rscript geolocate.R out.txt $MAPQUEST_KEY
+Rscript geocode.R out.txt $MAPQUEST_KEY
 
 # Make sure all the files are copied up
 for i in out-*.csv; do
