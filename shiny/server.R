@@ -22,8 +22,6 @@ data <- reactiveValues(calls=data.frame(), selectedIncident=NULL)
 observe({
   invalidateLater(60000, NULL)
   
-  print("Downloading new data")
-  
   allCalls <- content(GET("http://s3.amazonaws.com/dallas-police/current.csv"))
   
   data$calls <- allCalls[!duplicated(allCalls[,"Incident"]),]
@@ -58,15 +56,24 @@ shinyServer(function(input, output, session) {
     for (i in 1:nrow(calls)){
       thisRow <- calls[i,]  
       
+      color <- "cadetblue"
+      color <- switch(thisRow$Priority,
+             "1" = "red",
+             "2" = "orange",
+             "3" = "darkgreen",
+             "4" = "green")
+        
+      
+      
       map$addMarker(
         thisRow$Lat,
         thisRow$Long,
-        #100000000 / input$map_zoom^5,
         thisRow$Incident,
         list(
-          weight=1.2,
-          fill=TRUE,
-          color='#4A9'
+          awesome=list(
+            icon=NULL, 
+            markerColor=color
+          )
         )
       )
     }
@@ -104,6 +111,11 @@ shinyServer(function(input, output, session) {
       
     ))
     map$showPopup(event$lat, event$lng, content, event$id)
+  })
+  
+  output$callTable <- renderDataTable({
+    data$allCalls[,c("Incident","Nature", "Priority", "DateTime", "UnitNum", 
+                     "Block","Street", "Beat", "ReportingArea")]
   })
   
 })

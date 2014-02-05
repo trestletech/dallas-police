@@ -51,7 +51,7 @@ shinyUI(bootstrapPage(
     row(
       col(
         12,
-        ""
+        dataTableOutput("callTable")
         
       )
     )
