@@ -3,6 +3,10 @@ library(ggplot2)
 library(maps)
 library(httr)
 
+if (compareVersion(as.character(packageVersion("httr")), "0.2.99") < 0){
+  stop("You need the development version of httr: version 0.2.99")
+}
+
 # From a future version of Shiny
 bindEvent <- function(eventExpr, callback, env=parent.frame(), quoted=FALSE) {
   eventFunc <- exprToFunction(eventExpr, env, quoted)
@@ -22,8 +26,8 @@ data <- reactiveValues(calls=data.frame(), selectedIncident=NULL)
 observe({
   invalidateLater(60000, NULL)
   
+  # Requires the development version of httr.
   allCalls <- content(GET("http://s3.amazonaws.com/dallas-police/current.csv"))
-  
   data$calls <- allCalls[!duplicated(allCalls[,"Incident"]),]
   data$allCalls <- allCalls
 })
