@@ -1,0 +1,10 @@
+/* Gridster styles */
+.gridster .gs_w {
+    background: #FFF;
+    cursor: pointer;
+    padding: 8px;
+}
+
+div.gridster > ul, ol {
+    list-style: none;
+}
