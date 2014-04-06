@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ $# -lt 1 ]; then
+  echo "Must pass in an argument."
+  exit 1
+fi
+
 FILES=`head $1 | tr -s ' ' | cut -d ' ' -f 4`
 
 for file in $FILES
