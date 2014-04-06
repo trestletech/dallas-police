@@ -21,4 +21,4 @@ done
 
 # Keep a pointer to the latest one both here and in S3.
 cp out-*.csv current.csv
-aws s3 cp current.csv s3://dallas-police/
+aws s3 cp current.csv s3://dallas-police/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
