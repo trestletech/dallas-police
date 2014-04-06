@@ -14,9 +14,11 @@ fi
 phantomjs scraper.js
 Rscript geocode.R out.txt $MAPQUEST_KEY
 
+DATEDIR=`date +%Y/%m-%d`
+
 # Make sure all the files are copied up
 for i in out-*.csv; do
-    aws s3 cp $i s3://dallas-police/
+    aws s3 cp $i s3://dallas-police/$DATEDIR/
 done
 
 # Keep a pointer to the latest one both here and in S3.
