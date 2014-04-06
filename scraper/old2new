@@ -1,0 +1,13 @@
+#!/bin/bash
+
+FILES=`head $1 | tr -s ' ' | cut -d ' ' -f 4`
+
+for file in $FILES
+do
+  UTCDATE=`echo $file | grep -o '[0-9]\+'`
+  DATEDIR=`date -d "@$UTCDATE"  +%Y/%m-%d`
+  echo -n "Moving $file to dir $DATEDIR..."
+  aws s3 mv s3://dallas-police/$file s3://dallas-police/$DATEDIR/ --quiet
+  echo -e "\tdone."
+done
+
