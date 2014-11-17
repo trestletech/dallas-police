@@ -5,3 +5,5 @@ current.csv
 out.txt
 out-*.csv
 .mq_key
+download/2014
+aws.json
