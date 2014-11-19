@@ -20,8 +20,8 @@ shinyUI(bootstrapPage(
   tags$head(tags$link(rel='stylesheet', type='text/css', href='styles.css')),
   leafletMap(
     "map", "100%", 400,
-    initialTileLayer = "http://{s}.tiles.mapbox.com/v3/jcheng.map-5ebohr46/{z}/{x}/{y}.png",
-    initialTileLayerAttribution = HTML('Maps by <a href="http://www.mapbox.com/">Mapbox</a> — Geocoding by <a href="http://mapquest.com">MapQuest</a>'),
+    initialTileLayer = "https://{s}.tiles.mapbox.com/v3/jcheng.map-5ebohr46/{z}/{x}/{y}.png",
+    initialTileLayerAttribution = HTML('Maps by <a href="http://www.mapbox.com/">Mapbox</a> — Geocoding by <a href="https://developer.yahoo.com/boss/placefinder/">Yahoo!</a>'),
     options=list(
       center = c(32.84, -96.7),
       zoom = 10,

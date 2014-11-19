@@ -11,4 +11,4 @@ Once the data has been collected, I upload it to Amazon S3 for easy retrieval by
 
 ## Shiny App
 
-Because I store the real-time data in a public S3 location, anyone can download and view it. This Shiny application will download that file from S3 periodically and visualize the results contained therein in a Shiny application backed by Leaflet.
+Because I store the real-time data in a public S3 location, anyone can download and view it. This Shiny application will download that file from S3 periodically and visualize the results contained therein in a Shiny application backed by Leaflet. The app is hosted online at [https://trestletech.shinyapps.io/dpd-active/](https://trestletech.shinyapps.io/dpd-active/).
