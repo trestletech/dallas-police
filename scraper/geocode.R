@@ -15,50 +15,85 @@ library(httr)
 library(RJSONIO)
 #' @param address A character or character vector of addresses to look up. Only
 #' the unique addresses will be sent to the API.
-#' @param key The key for the Mapquest API (NOT URL encoded).
-#' @param open If TRUE will use Mapquest's open (OpenStreetMaps) API, if FALSE,
-#' will use their commercial API (which has a more stringent quota, so we only
-#' want to use it sparingly).
+#' @param api_id The app id for YDN
+#' @param api_key The app secret for YDN
 #' @return A data.frame with columns for the addresses (an in-order copy of the
 #' vector provided as input complete with any redundant addresses), the zip
 #' code, the latitude, and the longitude.
-geocode <- function(address, key=getOption("MAPQUEST_KEY"), open=TRUE){
+geocode <- function(address, api_id=getOption("RYDN_KEY"), 
+                    api_key=getOption("RYDN_SECRET")){
   toReturn <- data.frame(address = address)
   toReturn$zip <- NA
   toReturn$lat <- NA
   toReturn$long <- NA
   
-  if (is.null(key) || key == ""){
-    stop("You must provide a mapquest key.")
-  }
-  
   address <- unique(address)
   
-  # These JSON libraries are proving useless, so we'll just serialize it ourselves.
-  json <- paste0('{locations:[',
-                 paste0(paste0('{street:"', address, '",city:"Dallas",state:"TX"}'),
-                 collapse=",")
-                 ,']}')
-  
-  prefix <- ifelse(open, "open", "www")
-  
-  url <- paste0("http://",prefix,".mapquestapi.com/geocoding/v1/batch?&key=",
-                key, "&json=", URLencode(json))
-  #print(paste("Getting: ", url ))
-  info <- content(GET(url))
-  
-  for (i in 1:length(info$results)){
-    res <- info$results[[i]]
-    rowInd <- which(res$providedLocation$street == toReturn$address)
+  library(rydn)
+  for (i in 1:length(address)){
     
-    if (length(res$locations) >= 1){
-      toReturn[rowInd,"zip"] <- res$locations[[1]]$postalCode
-      toReturn[rowInd,"lat"] <- res$locations[[1]]$latLng$lat
-      toReturn[rowInd,"long"] <- res$locations[[1]]$latLng$lng 
+    res <- checkCache(address[i])
+    
+    if (is.null(res)){
+      # Do geolocation
+      res <- find_place(address[i]) 
+    }
+    
+    rowInd <- toReturn$address == address[i]
+    
+    # until stringsAsFactores=FALSE is in rydn...
+    res$quality <- as.integer(as.character(res$quality))
+    res$postal <- as.character(res$postal)
+    res$latitude <- as.numeric(as.character(res$latitude))
+    res$longitude <- as.numeric(as.character(res$longitude))
+    
+    addToCache(address[i], res)
+    
+    if (nrow(res) > 0 && max(res$quality) >= 70){
+      maxRes <- which(res$quality == max(res$quality))
+      # Pick the first if there's a tie.
+      maxRes <- maxRes[1]
+      
+      toReturn[rowInd,"zip"] <- res[maxRes, "postal"]
+      toReturn[rowInd,"lat"] <- res[maxRes, "latitude"]
+      toReturn[rowInd,"long"] <- res[maxRes, "longitude"]
     }
   }
   
   toReturn
+}
+
+#' Can optionally pass in cache if it's already loaded into memory
+checkCache <- function(address, rdsFile="cache.Rds", cache=NULL){
+  if (is.null(cache)){
+    if (!file.exists(rdsFile)){
+      return(NULL)
+    }
+    cache <- readRDS(rdsFile)
+  }
+  
+  if (!exists(address, envir=cache, inherits = FALSE)){
+    return(NULL)
+  }
+  return(get(address, envir=cache, inherits=FALSE))
+}
+
+#' Can optionally pass in cache if it's already loaded into memory
+addToCache <- function(raw, result, rdsFile="cache.Rds", cache=NULL){
+  if (is.null(cache)){
+    if (file.exists(rdsFile)){
+      cache <- readRDS(rdsFile)
+    } else{
+      cache <- new.env()
+    }
+  }
+  
+  if (exists(raw, envir=cache, inherits=FALSE)){
+    warning("Already had address in cache")
+  }
+  assign(raw, result, envir=cache)
+  
+  saveRDS(cache, rdsFile)
 }
 
 
@@ -82,6 +117,14 @@ addresses <- apply(data, 1, function(thisRow){
   }
   
   address <- sub(" / ", " and ", address)
+  
+  # Deal with "Marvin D Love Fwy Nb / L B J Fwy Eb"
+  address <- gsub("\\bNb\\b", "", address)
+  address <- gsub("\\bWb\\b", "", address)
+  address <- gsub("\\bEb\\b", "", address)
+  address <- gsub("\\bSb\\b", "", address)
+  
+  address <- paste0(address, ", Dallas, TX, USA")
   
   address
 })
@@ -112,7 +155,11 @@ try({
 # Get whatever data we can from the open API
 try({
   naRows <- is.na(data$Lat)
-  geoOpen <- geocode(addresses[naRows], open=TRUE)
+  
+  if (file.exists("keys.R")){
+    source("keys.R")
+  }
+  geoOpen <- geocode(addresses[naRows])
   
   message(sum(!is.na(geoOpen$lat)), "/", sum(naRows),
     " addresses filled via the open API.")
@@ -120,19 +167,6 @@ try({
   data[naRows, "Zip"] <- geoOpen$zip
   data[naRows, "Lat"] <- geoOpen$lat
   data[naRows, "Long"] <- geoOpen$long
-}, silent=TRUE)
-
-# Try to get any missing data from the commercial API
-try({
-  naRows <- is.na(data$Lat)
-  geoComm <- geocode(addresses[naRows], open=FALSE)
-  
-  message(sum(!is.na(geoComm$lat)), "/", sum(naRows),
-    " addresses filled via the commercial API.")
-  
-  data[naRows,"Zip"] <- geoComm$zip
-  data[naRows,"Lat"] <- geoComm$lat
-  data[naRows,"Long"] <- geoComm$long
 }, silent=TRUE)
 
 # Cache the addresses on disk so that we don't have to look up the addresses

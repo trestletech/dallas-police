@@ -7,3 +7,4 @@ out-*.csv
 .mq_key
 download/2014
 aws.json
+cache.Rds
