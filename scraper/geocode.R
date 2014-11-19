@@ -36,6 +36,7 @@ geocode <- function(address, api_id=getOption("RYDN_KEY"),
     
     if (is.null(res)){
       # Do geolocation
+      cat("Doing geolocation for '", address[i], "'\n")
       res <- find_place(address[i]) 
     }
     
@@ -135,19 +136,18 @@ if (length(unique(data$UpdateTime)) > 1){
   stop("Data spans multiple updates.")
 }
 
-# Get whatever data we can from the open API
-naRows <- is.na(data$Lat)
-
-if (file.exists("keys.R")){
-  source("keys.R")
-}
-geoOpen <- geocode(addresses[naRows])
-
-message(sum(!is.na(geoOpen$lat)), "/", sum(naRows),
-  " addresses filled via the open API.")
-
-data[naRows, "Zip"] <- geoOpen$zip
-data[naRows, "Lat"] <- geoOpen$lat
-data[naRows, "Long"] <- geoOpen$long
-
+try({  
+  if (file.exists("keys.R")){
+    source("keys.R")
+  }
+  geoOpen <- geocode(addresses)
+  
+  message(sum(!is.na(geoOpen$lat)), "/", length(addresses),
+    " addresses filled via the open API.")
+  
+  data[, "Zip"] <- geoOpen$zip
+  data[, "Lat"] <- geoOpen$lat
+  data[, "Long"] <- geoOpen$long
+})
+print("then")
 write.csv(data, paste0("out-", as.integer(Sys.time()), ".csv"), row.names=FALSE)
