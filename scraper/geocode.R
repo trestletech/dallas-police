@@ -149,5 +149,4 @@ try({
   data[, "Lat"] <- geoOpen$lat
   data[, "Long"] <- geoOpen$long
 })
-print("then")
 write.csv(data, paste0("out-", as.integer(Sys.time()), ".csv"), row.names=FALSE)
