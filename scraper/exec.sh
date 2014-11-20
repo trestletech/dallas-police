@@ -6,13 +6,8 @@ killall phantomjs
 rm out.txt
 rm out-*.csv
 
-if [ -f .mq_key ]
-then
-  MAPQUEST_KEY=`cat .mq_key`
-fi
-
 phantomjs scraper.js
-Rscript geocode.R out.txt $MAPQUEST_KEY
+Rscript geocode.R out.txt
 
 DATEDIR=`date +%Y/%m-%d`
 
@@ -24,3 +19,5 @@ done
 # Keep a pointer to the latest one both here and in S3.
 cp out-*.csv current.csv
 aws s3 cp current.csv s3://dallas-police/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+
+aws s3 cp cache.Rds s3://dallas-police/server-cache.Rds
