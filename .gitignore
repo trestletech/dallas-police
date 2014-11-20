@@ -6,5 +6,6 @@ out.txt
 out-*.csv
 .mq_key
 download/2014
+download/*.Rds
 aws.json
 cache.Rds
