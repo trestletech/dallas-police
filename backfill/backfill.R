@@ -7,7 +7,7 @@ if (length(args) < 3){
 }
 dir <- args[1]
 pointer <- args[2]
-count <- args[3]
+count <- as.integer(args[3])
 
 files <- list.files(dir, recursive=TRUE)
 
