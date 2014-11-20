@@ -40,9 +40,15 @@ geocode <- function(address, api_id=getOption("RYDN_KEY"),
     
     # until stringsAsFactores=FALSE is in rydn...
     res$quality <- as.integer(as.character(res$quality))
-    res$postal <- as.character(res$postal)
-    res$latitude <- as.numeric(as.character(res$latitude))
-    res$longitude <- as.numeric(as.character(res$longitude))
+    if ("postal" %in% names(res)){
+      res$postal <- as.character(res$postal)
+    }
+    if ("latitude" %in% names(res)){
+      res$latitude <- as.numeric(as.character(res$latitude))
+    }
+    if ("longitude" %in% names(res)){
+      res$longitude <- as.numeric(as.character(res$longitude))
+    }
     
     if (apiCalls > 0){
       addToCache(address[i], res, cache)
