@@ -53,9 +53,17 @@ geocode <- function(address, api_id=getOption("RYDN_KEY"),
       # Pick the first if there's a tie.
       maxRes <- maxRes[1]
       
-      toReturn[rowInd,"zip"] <- res[maxRes, "postal"]
-      toReturn[rowInd,"lat"] <- res[maxRes, "latitude"]
-      toReturn[rowInd,"long"] <- res[maxRes, "longitude"]
+      if ("postal" %in% names(res)){
+        toReturn[rowInd,"zip"] <- res[maxRes, "postal"]  
+      }
+      
+      if ("latitude" %in% names(res)){
+        toReturn[rowInd,"lat"] <- res[maxRes, "latitude"]
+      }
+      
+      if ("longitude" %in% names(res)){
+        toReturn[rowInd,"long"] <- res[maxRes, "longitude"]
+      }
     }
   }
   
