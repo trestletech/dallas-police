@@ -75,7 +75,7 @@ geocode <- function(address, api_id=getOption("RYDN_KEY"),
 }
 
 #' Can optionally pass in cache if it's already loaded into memory
-checkCache <- function(address, rdsFile, cache=NULL){
+checkCache <- function(address, rdsFile="cache.Rds", cache=NULL){
   if (is.null(cache)){
     if (!file.exists(rdsFile)){
       return(NULL)
@@ -90,7 +90,7 @@ checkCache <- function(address, rdsFile, cache=NULL){
 }
 
 #' Can optionally pass in cache if it's already loaded into memory
-addToCache <- function(raw, result, rdsFile, cache=NULL){
+addToCache <- function(raw, result, rdsFile="cache.Rds", cache=NULL){
   if (is.null(cache)){
     if (file.exists(rdsFile)){
       cache <- readRDS(rdsFile)
