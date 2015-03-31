@@ -36,8 +36,16 @@ try({
   if (file.exists("keys.R")){
     source("keys.R")
   }
-  geoOpen <- geocode(addresses)
+
+  # Copy the cache out so we can work with it transactionally
+  cacheName <- paste0("cache-", runif(1, min=1000000, max=9999999), ".Rds")
+  file.copy("cache.Rds", cacheName)
+
+  geoOpen <- geocode(addresses, cache=cacheName)
   
+  # Restore cache
+  file.copy(cacheName, "cache.Rds")
+
   message(sum(!is.na(geoOpen$lat)), "/", length(addresses),
     " addresses filled via the open API.")
   

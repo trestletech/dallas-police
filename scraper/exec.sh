@@ -9,6 +9,8 @@ rm out-*.csv
 phantomjs scraper.js
 Rscript geocode.R out.txt
 
+aws s3 cp cache.Rds s3://dallas-police/server-cache.Rds
+
 DATEDIR=`date +%Y/%m-%d`
 
 # Make sure all the files are copied up
@@ -20,4 +22,3 @@ done
 cp out-*.csv current.csv
 aws s3 cp current.csv s3://dallas-police/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 
-aws s3 cp cache.Rds s3://dallas-police/server-cache.Rds
