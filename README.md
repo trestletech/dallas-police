@@ -12,3 +12,13 @@ Once the data has been collected, I upload it to Amazon S3 for easy retrieval by
 ## Shiny App
 
 Because I store the real-time data in a public S3 location, anyone can download and view it. This Shiny application will download that file from S3 periodically and visualize the results contained therein in a Shiny application backed by Leaflet. The app is hosted online at [https://trestletech.shinyapps.io/dpd-active/](https://trestletech.shinyapps.io/dpd-active/).
+
+## Config
+
+To run this, you'll need to configure your S3 credentials so that the `aws` CLI can work with your S3 bucket. (You'll also need the `aws` tool installed). Also, on OSX I once had a problem not having the region specified. If you run into an error like 
+
+```
+HTTPSConnectionPool(host='s3-us-east-1a.amazonaws.com', port=443): Max retries exceeded with url: /my.bucket?delimiter=/&prefix= (Caused by <class 'socket.gaierror'>: [Errno 8] nodename nor servname provided, or not known)
+```
+
+then run `aws configure` and specify the region as `us-east-1`.
