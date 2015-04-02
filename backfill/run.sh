@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export PATH=$PATH:/usr/local/bin/
+
 if [ $# -eq 0 ]; then
   echo "You must pass in the number of API calls you want to use."
   exit 1
