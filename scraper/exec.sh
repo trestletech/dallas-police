@@ -1,5 +1,5 @@
 
-PATH=$PATH:/home/ec2-user/phantomjs-1.9.7-linux-x86_64/bin
+PATH=$PATH:/usr/local/bin/
 
 # Clean up last run
 killall phantomjs
