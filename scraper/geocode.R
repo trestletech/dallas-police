@@ -1,3 +1,8 @@
+# One of these needs to be loaded or you get a weird error about the methods package...
+library(dallasgeolocate)
+library(rgeos)
+library(sp)
+library(rgdal)
 
 #' Expect args in the format of:
 #' Rscript geocode.R <outputFile> <MAPQUEST_KEY>

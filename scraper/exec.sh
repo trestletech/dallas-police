@@ -1,5 +1,6 @@
+#!/bin/bash
 
-PATH=$PATH:/usr/local/bin/
+PATH=$PATH:/usr/local/bin/:/usr/bin/
 
 # Clean up last run
 killall phantomjs
