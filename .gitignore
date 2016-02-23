@@ -9,3 +9,7 @@ download/2014
 download/*.Rds
 aws.json
 cache.Rds
+analog-keys.R
+aws-config
+.vagrant
+.DS_Store
