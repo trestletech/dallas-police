@@ -11,9 +11,7 @@ if (length(args) < 1){
 }
 scrapedFile <- args[1]
 
-source("geocode-utils.R")
-
-data <- read.table(scrapedFile, sep="\t")
+data <- read.table(scrapedFile, sep="\t", stringsAsFactors=FALSE)
 # Currently we have one extra column in front.
 data <- data[,-1]
 colnames(data) <- c("Incident", "Division", "Nature", "Priority", "DateTime", 
@@ -22,9 +20,9 @@ colnames(data) <- c("Incident", "Division", "Nature", "Priority", "DateTime",
 
 data$Lat <- NA
 data$Long <- NA
-data$Zip <- NA
 
-addresses <- apply(data, 1, formatAddresses)
+library(dallasgeolocate)
+
 
 if (length(unique(data$UpdateTime)) > 1){
   # Data spans more than one update. Could have duplicates or missed data.
@@ -33,24 +31,11 @@ if (length(unique(data$UpdateTime)) > 1){
 }
 
 try({  
-  if (file.exists("keys.R")){
-    source("keys.R")
-  }
-
-  # Copy the cache out so we can work with it transactionally
-  cacheName <- paste0("cache-", runif(1, min=1000000, max=9999999), ".Rds")
-  file.copy("cache.Rds", cacheName)
-
-  geoOpen <- geocode(addresses, cache=cacheName)
+  locs <- dallasgeolocate::render_locations(data$Block, data$Street)
+  add <- dallasgeolocate::find_location(locs)
   
-  # Restore cache
-  file.copy(cacheName, "cache.Rds")
-
-  message(sum(!is.na(geoOpen$lat)), "/", length(addresses),
-    " addresses filled via the open API.")
+  data[, "Lat"] <- sapply(add, "[[", "y")
+  data[, "Long"] <- sapply(add, "[[", "x")
   
-  data[, "Zip"] <- geoOpen$zip
-  data[, "Lat"] <- geoOpen$lat
-  data[, "Long"] <- geoOpen$long
 })
 write.csv(data, paste0("out-", as.integer(Sys.time()), ".csv"), row.names=FALSE)
