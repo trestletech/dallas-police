@@ -1,125 +1,75 @@
+library(shiny)
 library(leaflet)
 library(ggplot2)
-library(maps)
 library(httr)
+library(plyr)
+library(dplyr)
+library(dallasgeolocate)
 
-if (compareVersion(as.character(packageVersion("httr")), "0.2.99") < 0){
-  stop("You need the development version of httr: version 0.2.99")
-}
-
-# From a future version of Shiny
-bindEvent <- function(eventExpr, callback, env=parent.frame(), quoted=FALSE) {
-  eventFunc <- exprToFunction(eventExpr, env, quoted)
-  
-  initialized <- FALSE
-  invisible(observe({
-    eventVal <- eventFunc()
-    if (!initialized)
-      initialized <<- TRUE
-    else
-      isolate(callback())
-  }))
-}
-
-data <- reactiveValues(calls=data.frame(), selectedIncident=NULL)
+data <- reactiveValues(calls=data.frame())
 
 observe({
   invalidateLater(60000, NULL)
   
-  # Requires the development version of httr.
-  allCalls <- content(GET("http://s3.amazonaws.com/dallas-police/current.csv"))
-  data$calls <- allCalls[!duplicated(allCalls[,"Incident"]),]
-  data$allCalls <- allCalls
+  raw <- GET(url="https://www.dallasopendata.com/resource/are8-xahz.json")
+  vals <- content(raw)
+  dat <- ldply(vals, data.frame)
+  
+  adds <- dallasgeolocate::render_locations(as.character(dat$block), as.character(dat$location))
+  locs <- dallasgeolocate::find_location(adds)
+  locDF <- ldply(lapply(locs, as.list), data.frame)
+  
+  locDat <- cbind(dat, locDF)
+  colnames(locDat)[(ncol(locDat)-2):(ncol(locDat)-1)] <- c("long", "lat")
+  
+  tbl <- as_data_frame(locDat)
+  tbl <- tbl %>% 
+    mutate(uniqueLoc = paste(long, lat)) %>% 
+    group_by(uniqueLoc) %>% 
+    summarize(
+      date_time = min(as.character(date_time)), 
+      incident_number = incident_number[1],
+      priority = max(as.character(priority)),
+      nature_of_call = nature_of_call[1],
+      block=block[1], 
+      location = location[1],
+      long = long[1], 
+      lat=lat[1]) %>% 
+    ungroup() %>% 
+    select(-uniqueLoc)
+  
+  data$calls <- tbl
 })
+
+pal <- colorFactor(c("#FF0000", "#CCCC11", "#009900", "#009900"), domain = 1:4)
 
 shinyServer(function(input, output, session) {
   output$desc <- reactive({
-    if (is.null(data$allCalls))
-      return(list())
+    print("Desc")
+    req(data$calls)
+    
     list(
       activeNum = nrow(data$calls),
-      lastUpdate = max(data$calls$UpdateTime)
+      lastUpdate = max(Sys.time())
     )
   })
   
-  
-  # Create the map; this is not the "real" map, but rather a proxy
-  # object that lets us control the leaflet map on the page.
-  map <- createLeafletMap(session, 'map')
-  
-  observe({
-    map$clearMarkers()
-    
-    input$map_zoom
-    
-    if (nrow(data$calls) == 0)
-      return()
-    
-    calls <- data$calls
-    
-    for (i in 1:nrow(calls)){
-      thisRow <- calls[i,]  
-      
-      color <- "cadetblue"
-      color <- switch(thisRow$Priority,
-             "1" = "red",
-             "2" = "orange",
-             "3" = "darkgreen",
-             "4" = "green")
-        
-      
-      
-      map$addMarker(
-        thisRow$Lat,
-        thisRow$Long,
-        thisRow$Incident,
-        list(
-          awesome=list(
-            icon=NULL, 
-            markerColor=color
-          )
-        )
-      )
-    }
-    
-    
+  output$map <- renderLeaflet({
+    leaflet() %>% 
+      addTiles() %>% 
+      addCircleMarkers(~long, ~lat, data = filter(data$calls, !is.na(lat)),
+                       color = ~pal(as.integer(priority)),
+                       stroke = FALSE,
+                       fillOpacity=.7,
+                       popup = ~paste0("<strong>", incident_number, "</strong><br/>",
+                                       "Priority: ", priority, "<br />",
+                                       nature_of_call))
   })
-  
-  bindEvent(input$map_click, function() {
-    data$selectedIncident <- NULL
-  })
-  
-  bindEvent(input$map_marker_click, function() {
-    event <- input$map_marker_click
-    map$clearPopups()
     
-    incident <- data$calls[data$calls$Incident == event$id,]
-    data$selectedIncident <- incident
-    
-    allUnits <- data$allCalls[data$allCalls$Incident == event$id,]
-    
-    content <- as.character(tagList(
-      tags$strong(ifelse(is.na(incident$Block), 
-                         incident$Street, 
-                         paste(incident$Block, incident$Street))),
-      tags$br(),
-      incident$Nature,
-      tags$br(),
-      paste0("Incident #", incident$Incident),
-      tags$br(),
-      paste0("Unit",ifelse(nrow(allUnits) > 1, "s", ""),
-             ": ", paste(allUnits$UnitNum, collapse=", ")),
-      tags$br(),
-      div(incident$DateTime, class="grey")
-      
-      
-    ))
-    map$showPopup(event$lat, event$lng, content, event$id)
-  })
-  
   output$callTable <- renderDataTable({
-    data$allCalls[,c("Incident","Nature", "Priority", "DateTime", "UnitNum", 
-                     "Block","Street", "Beat", "ReportingArea")]
+    data$calls %>% 
+      select(-lat, -long) %>% 
+      arrange(priority)
   })
   
 })

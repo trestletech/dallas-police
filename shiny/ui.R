@@ -18,16 +18,8 @@ actionLink <- function(inputId, ...) {
 
 shinyUI(bootstrapPage(
   tags$head(tags$link(rel='stylesheet', type='text/css', href='styles.css')),
-  leafletMap(
-    "map", "100%", 400,
-    initialTileLayer = "https://{s}.tiles.mapbox.com/v3/jcheng.map-5ebohr46/{z}/{x}/{y}.png",
-    initialTileLayerAttribution = HTML('Maps by <a href="http://www.mapbox.com/">Mapbox</a> — Geocoding by <a href="https://developer.yahoo.com/boss/placefinder/">Yahoo!</a>'),
-    options=list(
-      center = c(32.84, -96.7),
-      zoom = 10,
-      maxBounds = list(list(17, -180), list(59, 180))
-    )
-  ),
+  leafletOutput("map", "100%", 400),
+  
   tags$div(
     class = "container",
     
